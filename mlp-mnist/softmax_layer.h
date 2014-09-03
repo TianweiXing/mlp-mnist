@@ -6,22 +6,53 @@ namespace mlp {
 	/*
 	Softmax Regression Classifer for mnist task.
 	output == 10.
+	last layer.
+	weight decay.
 	*/
-	class SoftmaxRegression
+	class SoftmaxRegression :public Layer
 	{
 	public:
-		SoftmaxRegression(vec_t x) :
-			in_size_(x.size()), out_size_(10), x_(x), alpha_(0.003), lambda_(0.1)
+		SoftmaxRegression(size_t in_size, size_t out_size) :
+			Layer(0.03, 0.1, in_size, out_size)
 		{
+			output_.resize(out_size_);
+			g_.resize(in_size_);
+			d_in_.resize(in_size_);
 			W_.resize(in_size_ * out_size_);
 			b_.resize(out_size_);
 		}
 
 		vec_t forward(){
+			//std::cout << "softmax forward feeding" << std::endl;
 			for (size_t out = 0; out < out_size_; out++){
-				output_[out] = dot(x_, get_W(out, in_size_, W_)) + b_[out];
+				output_[out] = dot(input_, get_W(out, in_size_, W_)) + b_[out];
 			}
 			return softmax(output_);
+		}
+
+		void back_prop(){
+			//std::cout << "softmax backprop" << std::endl;
+			this->calc_dinput();
+			for (size_t in = 0; in < in_size_; in++){
+				g_[in] = d_in_[in] * dot(this->softmax_g, get_W_step(in));
+			}
+			
+			vec_t g;
+			for (size_t i = 0; i < out_size_; i++){
+				float_t _ = 0 - output_[i];
+				if (abs(softmax_exp_y[i] - 1.0) < 1e-7)
+					_ = 1.0 - output_[i];
+				g.push_back(_);
+			}
+
+			for (size_t out = 0; out < out_size_; out++){
+				for (size_t in = 0; in < in_size_; in++){
+					/*fuck*/
+					W_[out * in_size_ + in] += alpha_ * (g[out] * input_[in]
+						+ /*weight decay*/lambda_ * W_[out * in_size_ + in]);
+				}
+				b_[out] += alpha_ * g[out];
+			}
 		}
 
 	private:
@@ -52,15 +83,5 @@ namespace mlp {
 
 			return in;
 		}
-
-		size_t in_size_;
-		size_t out_size_;
-
-		float_t alpha_; // learning rate
-		float_t lambda_; // weight decay
-		vec_t x_;
-		vec_t output_;
-		vec_t W_;
-		vec_t b_;
 	};
 }

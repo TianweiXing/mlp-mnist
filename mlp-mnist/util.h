@@ -9,6 +9,12 @@ namespace mlp {
 	typedef std::vector<float_t> vec_t;
 	typedef std::vector<std::vector<float_t>> vec2d_t;
 
+	inline int uniform_rand(int min, int max) {
+		static boost::mt19937 gen(0);
+		boost::uniform_smallint<> dst(min, max);
+		return dst(gen);
+	}
+
 	template<typename T>
 	inline T uniform_rand(T min, T max) {
 		static boost::mt19937 gen(0);
@@ -43,6 +49,14 @@ namespace mlp {
 			sum += x[i] * w[i];
 		}
 		return sum;
+	}
+
+	vec_t f_muti_vec(float_t x, const vec_t v){
+		vec_t r;
+		for_each(v.begin(), v.end(), [&](float_t i){
+			r.push_back(x * i);
+		});
+		return r;
 	}
 
 	vec_t get_W(size_t index, size_t in_size_, vec_t W_){
@@ -113,5 +127,52 @@ namespace mlp {
 		Sample(float_t label_, std::vector<float_t> image_) :label(label_), image(image_){}
 	};
 
+	struct Layer
+	{
+		Layer* prev;
+		Layer* next;
+		vec_t input_;
+		vec_t output_;
+		vec_t g_;
+		float_t alpha_; // learning rate
+		float_t lambda_; // weight decay
 
-} // namespace logistic
+		size_t in_size_;
+		size_t out_size_;
+		vec_t d_in_;
+		vec_t W_;
+		vec_t b_;
+
+		/*eh..*/
+		vec_t softmax_g;
+		vec_t softmax_exp_y;
+
+		virtual vec_t forward() = 0;
+		virtual void back_prop() = 0; 
+
+		void calc_dinput(){
+			for (size_t i = 0; i < in_size_; i++){
+				d_in_[i] = df_sigmod(input_[i]);
+			}
+		}
+
+		float_t sigmod(float_t in){
+			return 1.0 / (1.0 + std::exp(-in));
+		}
+
+		float_t df_sigmod(float_t f_x) {
+			return f_x * (1.0 - f_x);
+		}
+
+		vec_t get_W_step(size_t in){
+			vec_t r;
+			for (size_t i = in; i < out_size_ * in_size_; i += in_size_){
+				r.push_back(W_[i]);
+			}
+			return r;
+		}
+
+		Layer(float_t alpha, float_t lambda, size_t in_size, size_t out_size) :
+			alpha_(alpha), lambda_(lambda), in_size_(in_size), out_size_(out_size){}
+	};
+} // namespace mlp

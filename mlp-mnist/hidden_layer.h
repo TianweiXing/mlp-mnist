@@ -8,23 +8,42 @@ namespace mlp {
 	Using sigmod activation function
 	
 	*/
-	class HiddenLayer
+	class HiddenLayer :public Layer
 	{
 	public:
-		HiddenLayer(vec_t input, size_t out_size) :
-			input_(input), in_size_(input.size()), out_size_(out_size)
+		HiddenLayer(size_t in_size, size_t out_size) :
+			Layer(0.03, 0.1, in_size, out_size)
 		{
 			output_.resize(out_size_);
 			W_.resize(out_size_ * in_size_);
 			b_.resize(out_size);
+			d_in_.resize(in_size_);
+			g_.resize(in_size_);
 			this->init_weight();
 		}
 
-		vec_t forward_prop(){
+		vec_t forward(){
+			//std::cout << "hidden forward feeding" << std::endl;
 			for (size_t out = 0; out < out_size_; out++){
 				output_[out] = sigmod(dot(input_, get_W(out, in_size_, W_)) + b_[out]);
 			}
 			return output_;
+		}
+
+		void back_prop(){
+			//std::cout << "hidden layer backprop" << std::endl;
+			assert(this->next != nullptr);
+			this -> calc_dinput();
+			for (size_t in = 0; in < in_size_; in++){
+				g_[in] = d_in_[in] * dot(this->next->g_, get_W_step(in));
+			}
+			//update weight
+			for (size_t out = 0; out < out_size_; out++){
+				for (size_t in = 0; in < in_size_; in++){
+					W_[out * in_size_ + in] += output_[out] * this->next->g_[out];
+				}
+				b_[out] += g_[out];
+			}
 		}
 
 	private:
@@ -41,23 +60,5 @@ namespace mlp {
 				-4 * 6 / std::sqrtf((float)(in_size_ + out_size_)),
 				4 * 6 / std::sqrtf((float)(in_size_ + out_size_)));
 		}
-
-		float_t sigmod(float_t in){
-			return 1.0 / (1.0 + std::exp(-in));
-		}
-
-		float_t df_sigmod(float_t f_x) {
-			return f_x * (1.0 - f_x);
-		}
-
-
-
-		size_t in_size_;
-		size_t out_size_;
-
-		vec_t input_;
-		vec_t output_;
-		vec_t W_;
-		vec_t b_;
 	};
 } //namespace mlp
