@@ -146,6 +146,7 @@ namespace mlp {
 		/*eh..*/
 		vec_t softmax_g;
 		vec_t softmax_exp_y;
+		
 
 		virtual vec_t forward() = 0;
 		virtual void back_prop() = 0; 

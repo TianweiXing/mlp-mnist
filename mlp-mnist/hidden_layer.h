@@ -12,7 +12,7 @@ namespace mlp {
 	{
 	public:
 		HiddenLayer(size_t in_size, size_t out_size) :
-			Layer(0.03, 0.1, in_size, out_size)
+			Layer(0.3, 0.001, in_size, out_size)
 		{
 			output_.resize(out_size_);
 			W_.resize(out_size_ * in_size_);
@@ -32,18 +32,30 @@ namespace mlp {
 
 		void back_prop(){
 			//std::cout << "hidden layer backprop" << std::endl;
-			assert(this->next != nullptr);
-			this -> calc_dinput();
+			//assert(this->next != nullptr);
+			//this -> calc_dinput();
 			for (size_t in = 0; in < in_size_; in++){
-				g_[in] = d_in_[in] * dot(this->next->g_, get_W_step(in));
+				if (this->next == nullptr)
+					g_[in] = df_sigmod(input_[in]) *dot(this->softmax_g, get_W_step(in));
+				else
+					g_[in] = df_sigmod(input_[in]) * dot(this->next->g_, get_W_step(in));
 			}
+			//disp_vec_t(output_);
 			//update weight
 			for (size_t out = 0; out < out_size_; out++){
 				for (size_t in = 0; in < in_size_; in++){
-					W_[out * in_size_ + in] += output_[out] * this->next->g_[out];
+					if (this->next == nullptr)
+						W_[out * in_size_ + in] += alpha_* input_[in] * this->softmax_g[out];
+					else
+						W_[out * in_size_ + in] += alpha_* input_[in] * this->next->g_[out];
 				}
-				b_[out] += g_[out];
+				//disp_vec_t(W_);
+				if (this->next == nullptr)
+					b_[out] += this->softmax_g[out];
+				else
+					b_[out] += this ->next ->g_[out];
 			}
+			//disp_vec_t(W_);
 		}
 
 	private:
@@ -53,12 +65,17 @@ namespace mlp {
 		see also:http://deeplearning.net/tutorial/references.html#xavier10
 		*/
 		void init_weight(){
+			/*
 			uniform_rand(W_.begin(), W_.end(),
 				-4 * 6 / std::sqrtf((float)(in_size_ + out_size_)),
 				4 * 6 / std::sqrtf((float)(in_size_ + out_size_)));
 			uniform_rand(b_.begin(), b_.end(),
 				-4 * 6 / std::sqrtf((float)(in_size_ + out_size_)),
 				4 * 6 / std::sqrtf((float)(in_size_ + out_size_)));
+			*/
+			uniform_rand(W_.begin(), W_.end(), -2, 2);
+			uniform_rand(b_.begin(), b_.end(), -2, 2);
+			
 		}
 	};
 } //namespace mlp

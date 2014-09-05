@@ -13,7 +13,7 @@ namespace mlp {
 	{
 	public:
 		SoftmaxRegression(size_t in_size, size_t out_size) :
-			Layer(0.03, 0.1, in_size, out_size)
+			Layer(0.03, 0.001, in_size, out_size)
 		{
 			output_.resize(out_size_);
 			g_.resize(in_size_);
@@ -27,14 +27,16 @@ namespace mlp {
 			for (size_t out = 0; out < out_size_; out++){
 				output_[out] = dot(input_, get_W(out, in_size_, W_)) + b_[out];
 			}
-			return softmax(output_);
+			//disp_vec_t(input_);
+			return this->softmax(output_);
 		}
 
 		void back_prop(){
 			//std::cout << "softmax backprop" << std::endl;
 			this->calc_dinput();
 			for (size_t in = 0; in < in_size_; in++){
-				g_[in] = d_in_[in] * dot(this->softmax_g, get_W_step(in));
+				//g_[in] = d_in_[in] * dot(this->softmax_g, get_W_step(in));
+				g_[in] = this->softmax_g[in];
 			}
 			
 			vec_t g;
@@ -53,6 +55,7 @@ namespace mlp {
 				}
 				b_[out] += alpha_ * g[out];
 			}
+			
 		}
 
 	private:
