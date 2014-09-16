@@ -1,28 +1,52 @@
+#pragma once
 #include "util.h"
 
-#pragma once
+#include "mnist_parser.h"
+
+
+#include "output_layer.h"
+#include "mnist_parser.h"
+#include "fullyconnected_layer.h"
+
 namespace mlp{
-	class Network
+#define MAX_ITER 10000
+#define M 10
+#define END_CONDITION 1e-7
+	class Mlp
 	{
 	public:
-		void train(vec2d_t train_x, vec_t train_y, int train_size){
-			train_x_ = train_x, train_y_ = train_y, train_size_ = train_size;
-			for (size_t i = 0; i < 3000 * train_size_; i++){
-				std::cout << "training loop:" << i << std::endl;
-				train_once();
+
+		void train(vec2d_t train_x, vec_t train_y, size_t train_size){
+			train_x_ = train_x;
+			train_y_ = train_y;
+			train_size_ = train_size;
+			/*
+			auto add OutputLayer as the last layer.
+			*/
+			this->add_layer(new OutputLayer(layers.back()->out_depth_));
+
+			/*
+			start training...
+			*/
+			auto stop = false;
+			int iter = 0;
+			while (iter < MAX_ITER && !stop){
+				iter++;
+				auto err = train_once();
+				std::cout << err << std::endl;
+				if (err < END_CONDITION) stop = true;
 			}
 		}
 
-		void test(vec2d_t test_x, vec_t test_y){
-			test_x_ = test_x, test_y_ = test_y, test_size_ = test_x_.size();
-			size_t bang = 0;
-			for (size_t i = 0; i < test_x.size(); i++){
-				std::cout << "testing loop:" << i << std::endl;
-				if (test_once()){
-					bang++;
-				}
+		void test(vec2d_t test_x, vec_t test_y, size_t test_size){
+			test_x_ = test_x, test_y_ = test_y, test_size_ = test_size;
+			int iter = 0;
+			int bang = 0;
+			while (iter < test_size_){
+				iter++;
+				if (test_once()) bang++;
 			}
-			std::cout << (float)bang / 10000 << std::endl;
+			std::cout << (float)bang / test_size_ << std::endl;
 		}
 
 		void add_layer(Layer* layer){
@@ -47,7 +71,6 @@ namespace mlp{
 
 		bool test_once(){
 			auto test_x_index = uniform_rand(0, test_size_ - 1);
-			std::cout << "train y: " << train_y_[test_x_index] << std::endl;
 			layers[0]->input_ = test_x_[test_x_index];
 			for (auto layer : layers){
 				layer->forward();
@@ -55,59 +78,57 @@ namespace mlp{
 					layer->next->input_ = layer->output_;
 				}
 			}
-			//std::cout << "forward feeding over" << std::endl;
-			//disp_vec_t(layers.back()->output_);
-			return (int)test_y_[test_x_index] == (int)max_iter(layers.back()->output_);
+			std::cout << "exp:" << test_y_[test_x_index];
+			std::cout << "result:";
+			disp_vec_t(layers.back()->output_);
+			return true;
+			//return (int)test_y_[test_x_index] == (int)max_iter(layers.back()->output_);
 		}
 
-		void train_once(){
-			auto train_x_index = uniform_rand(0, train_size_ - 1);
-			std::cout << "train y: " << train_y_[train_x_index] << std::endl;
-			layers[0]->input_ = train_x_[train_x_index];
-			for (auto layer : layers){
-				layer->forward();
-				if (layer->next != nullptr){
-					layer->next->input_ = layer->output_;
+		float_t train_once(){
+			float_t err = 0;
+			int iter = 0;
+			while (iter < M){
+				iter++;
+				auto train_x_index = uniform_rand(0, train_size_ - 1);
+				layers[0]->input_ = train_x_[train_x_index];
+				layers.back()->exp_y = (int)train_y_[train_x_index];
+				
+				std::cout << "layer exp y: " << layers.back()->exp_y << std::endl;
+				/*
+				Start forward feeding.
+				*/
+				for (auto layer : layers){
+					layer->forward();
+					if (layer->next != nullptr){
+						layer->next->input_ = layer->output_;
+					}
+				}
+
+				disp_vec_t(layers.back()->input_);
+
+				err += layers.back()->err;
+				/*
+				back propgation
+				*/
+
+				for (auto i = layers.rbegin(); i != layers.rend(); i++){
+					(*i)->back_prop();
 				}
 			}
-			//std::cout << "forward feeding over" << std::endl;
-			disp_vec_t(layers.back()->output_);
-			//std::cout << max_iter(layers.back()->output_) << std::endl;
-			vec_t exp_y(layers.back()->output_.size(), 0);
-			//exp_y[(int)train_y_[train_x_index]] = 1.0;
-			exp_y[0] = train_y_[train_x_index];
-			float_t err = 0;
-			for (size_t i = 0; i < layers.back()->output_.size(); i++){
-				err += 0.5 * (exp_y[i] - layers.back()->output_[i]) * 
-					(exp_y[i] - layers.back()->output_[i]);
-			}
-			std::cout << "err:" << err << std::endl;
-			/*
-			layers.back()->softmax_exp_y = exp_y;
-			*/
-			vec_t g_y;
-			for (size_t i = 0; i < layers.back()->output_.size(); i++){
-				g_y.push_back((exp_y[i] - layers.back()->output_[i]) * df_sigmod(layers.back()->output_[i]));
-			}
-			layers.back()->softmax_g = g_y;
-			//disp_vec_t(g_y);
-			for (auto i = layers.rbegin(); i != layers.rend(); i++){
-				(*i)->back_prop();
-			}
+			return err / M;
 		}
 
-		float_t df_sigmod(float_t f_x) {
-			return f_x * (1.0 - f_x);
-		}
+		std::vector < Layer* > layers;
 
-		std::vector<Layer*> layers;
-		
+		size_t train_size_;
 		vec2d_t train_x_;
-		int train_size_;
 		vec_t train_y_;
 
+		size_t test_size_;
 		vec2d_t test_x_;
-		int test_size_;
 		vec_t test_y_;
 	};
-}
+#undef MAX_ITER
+#undef M
+} //namespace mlp-mnist
