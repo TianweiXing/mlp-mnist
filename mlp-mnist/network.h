@@ -11,10 +11,13 @@
 namespace mlp{
 #define MAX_ITER 10000
 #define M 10
-#define END_CONDITION 1e-7
+#define END_CONDITION 1e-5
 	class Mlp
 	{
 	public:
+		Mlp(float_t alpha, float_t lambda):
+			alpha_(alpha), lambda_(lambda)
+		{}
 
 		void train(vec2d_t train_x, vec_t train_y, size_t train_size){
 			train_x_ = train_x;
@@ -23,7 +26,11 @@ namespace mlp{
 			/*
 			auto add OutputLayer as the last layer.
 			*/
-			this->add_layer(new OutputLayer(layers.back()->out_depth_));
+			this->add_layer(new OutputLayer(layers.back()->out_depth_, layers.back()->a_));
+
+			for (auto layer : layers){
+				layer->alpha_ = alpha_, layer->lambda_ = lambda_;
+			}
 
 			/*
 			start training...
@@ -128,6 +135,9 @@ namespace mlp{
 		size_t test_size_;
 		vec2d_t test_x_;
 		vec_t test_y_;
+
+		float_t alpha_;
+		float_t lambda_;
 	};
 #undef MAX_ITER
 #undef M

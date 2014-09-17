@@ -3,15 +3,16 @@
 #include "util.h"
 
 namespace mlp{
+
 	class FullyConnectedLayer :public Layer
 	{
 	public:
-		FullyConnectedLayer(size_t in_depth, size_t out_depth) :
-			Layer(in_depth, out_depth)
+		FullyConnectedLayer(size_t in_depth, size_t out_depth, activation* a) :
+			Layer(in_depth, out_depth, a)
 		{
-			alpha_ = 0.3;
 			output_.resize(out_depth_);
 			W_.resize(in_depth_ * out_depth_);
+			deltaW_.resize(in_depth_ * out_depth_);
 			b_.resize(out_depth_);
 			g_.resize(in_depth_);
 
@@ -20,7 +21,7 @@ namespace mlp{
 
 		void forward(){
 			for (size_t out = 0; out < out_depth_; out++){
-				output_[out] = sigmod(dot(input_, get_W(out)) + b_[out]);
+				output_[out] = a_->f(dot(input_, get_W(out)) + b_[out]);
 			}
 		}
 
@@ -29,16 +30,20 @@ namespace mlp{
 			Compute the err terms;
 			*/
 			for (size_t in = 0; in < in_depth_; in++){
-				g_[in] = df_sigmod(input_[in]) * dot(this->next->g_, get_W_step(in));
+				g_[in] = a_->df(input_[in]) * dot(this->next->g_, get_W_step(in));
 			}
 			/*
 			Update weights.
 			*/
 			for (size_t out = 0; out < out_depth_; out++){
 				for (size_t in = 0; in < in_depth_; in++){
-					W_[out * in_depth_ + in] += alpha_/*learning rate*/
+					auto delta = alpha_/*learning rate*/
 						* input_[in] * this->next->g_[out]/*err terms*/
-						/*+ lambda_ weight decay*/;
+						/*lambda_ momentum*/
+						+ lambda_ * deltaW_[out * in_depth_ + in];
+					W_[out * in_depth_ + in] += delta;
+					/*update momentum*/
+					deltaW_[out * in_depth_ + in] = delta;
 				}
 				b_[out] += this->next->g_[out];
 			}
@@ -46,7 +51,7 @@ namespace mlp{
 
 		/*
 		for the activation sigmod,
-		weight init as [-4 * (6 / sqrt(fan_in + fan_out)), +4 *(6 / sqrt(fan_in + fan_out))]:
+		weight init ： [-4 * (6 / sqrt(fan_in + fan_out)), +4 *(6 / sqrt(fan_in + fan_out))]:
 		see also:http://deeplearning.net/tutorial/references.html#xavier10
 		*/
 		void init_weight(){
