@@ -1,3 +1,6 @@
+#ifndef ACTIVATION_H_
+#define ACTIVATION_H_
+
 #pragma once
 namespace mlp {
 
@@ -42,3 +45,5 @@ namespace mlp {
 		}*/
 	};
 } // namespace mlp
+
+#endif //ACTIVATION_H_

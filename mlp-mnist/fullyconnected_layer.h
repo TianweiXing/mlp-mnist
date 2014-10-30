@@ -1,3 +1,6 @@
+#ifndef FULLYCONNECTEDLAYER_H_
+#define FULLYCONNECTEDLAYER_H_
+
 #pragma once
 #include "layer.h"
 #include "util.h"
@@ -85,3 +88,5 @@ namespace mlp{
 		}
 	};
 } // namespace mlp
+
+#endif 

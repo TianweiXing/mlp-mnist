@@ -4,34 +4,32 @@ using namespace mlp;
 using namespace std;
 
 int main(){
-	
-	Mnist_Parser m;
-	//m.load_testing();
-	//m.load_training();
-	vec2d_t x;
-	vec_t y;
-	/*
-	for (size_t i = 0; i < 60000; i++){
-		x.push_back(m.train_sample[i]->image);
-		y.push_back(m.train_sample[i]->label);
-	}
-	
-	
-	
-	for (size_t i = 0; i < 10000; i++){
-		test_x.push_back(m.test_sample[i]->image);
-		test_y.push_back(m.test_sample[i]->label);
-	}
-	*/
-	vec2d_t test_x = { { 0, 0, 0, 0 }, { 0, 1, 1, 1 }, { 1, 0, 0, 0 }, { 1, 1, 1, 1 } };
-	vec_t test_y = { 0, 1, 1, 0 };
-	Mlp n(0.3, 0.01);
+	vec2d_t train_x;
+	vec_t train_y;
+	vec2d_t test_x;
+	vec_t test_y;
 
-	n.add_layer(new FullyConnectedLayer(4, 100, new sigmoid_activation));
-	n.add_layer(new FullyConnectedLayer(100, 1, new sigmoid_activation));
+	/*加载MNIST数据集*/
+	LOAD_MNIST_TEST(test_x, test_y);
+	LOAD_MNIST_TRAIN(train_x, train_y);
+	
+	/*使用神经网络拟合XOR函数，快速验证神经网络正确性*/
+	//vec2d_t XOR_x = { { 0, 0, 0, 0 }, { 0, 1, 1, 1 }, { 1, 0, 0, 0 }, { 1, 1, 1, 1 } };
+	//vec_t XOR_y = { 0, 1, 1, 0 };
+	
+	Mlp n(0.03, 0.01);
 
-	n.train(test_x, test_y, 4);
-	n.test(test_x, test_y, 4);
+	/*拟合XOR参数：*/
+	//n.add_layer(new FullyConnectedLayer(4, 10, new sigmoid_activation));
+	//n.add_layer(new FullyConnectedLayer(10, 1, new sigmoid_activation));
+
+	//n.train(XOR_x, XOR_y, 4);
+
+	/*MNIST拟合：*/
+	n.add_layer(new FullyConnectedLayer(28 *28, 1000, new sigmoid_activation));
+	n.add_layer(new FullyConnectedLayer(1000, 10, new sigmoid_activation));
+	n.train(train_x, train_y, 60000);
+	n.test(test_x, test_y, 10000);
 	
 	getchar();
 	return 0;

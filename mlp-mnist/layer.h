@@ -1,3 +1,5 @@
+#ifndef LAYER_H_
+#define LAYER_H_
 #pragma once
 #include "activation.h"
 
@@ -39,3 +41,5 @@ namespace mlp{
 		vec_t exp_y_vec;
 	};
 } //namspace mlp
+
+#endif

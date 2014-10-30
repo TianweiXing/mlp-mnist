@@ -1,17 +1,18 @@
+#ifndef NETWORK_H_
+#define NETWORK_H_
+
 #pragma once
+
 #include "util.h"
-
 #include "mnist_parser.h"
-
-
 #include "output_layer.h"
 #include "mnist_parser.h"
 #include "fullyconnected_layer.h"
 
 namespace mlp{
-#define MAX_ITER 10000
+#define MAX_ITER 60000
 #define M 10
-#define END_CONDITION 1e-5
+#define END_CONDITION 1e-3
 	class Mlp
 	{
 	public:
@@ -19,7 +20,7 @@ namespace mlp{
 			alpha_(alpha), lambda_(lambda)
 		{}
 
-		void train(vec2d_t train_x, vec_t train_y, size_t train_size){
+		void train(const vec2d_t& train_x, const vec_t& train_y, size_t train_size){
 			train_x_ = train_x;
 			train_y_ = train_y;
 			train_size_ = train_size;
@@ -40,12 +41,12 @@ namespace mlp{
 			while (iter < MAX_ITER && !stop){
 				iter++;
 				auto err = train_once();
-				std::cout << err << std::endl;
+				std::cout << "err: " <<  err << std::endl;
 				if (err < END_CONDITION) stop = true;
 			}
 		}
 
-		void test(vec2d_t test_x, vec_t test_y, size_t test_size){
+		void test(const vec2d_t& test_x, const vec_t& test_y, size_t test_size){
 			test_x_ = test_x, test_y_ = test_y, test_size_ = test_size;
 			int iter = 0;
 			int bang = 0;
@@ -64,7 +65,7 @@ namespace mlp{
 		}
 
 	private:
-		size_t max_iter(vec_t v){
+		size_t max_iter(const vec_t& v){
 			size_t i = 0;
 			float_t max = v[0];
 			for (size_t j = 1; j < v.size(); j++){
@@ -87,9 +88,9 @@ namespace mlp{
 			}
 			std::cout << "exp:" << test_y_[test_x_index];
 			std::cout << "result:";
-			disp_vec_t(layers.back()->output_);
-			return true;
-			//return (int)test_y_[test_x_index] == (int)max_iter(layers.back()->output_);
+			//disp_vec_t(layers.back()->output_);
+			//return true;
+			return (int)test_y_[test_x_index] == (int)max_iter(layers.back()->output_);
 		}
 
 		float_t train_once(){
@@ -101,7 +102,8 @@ namespace mlp{
 				layers[0]->input_ = train_x_[train_x_index];
 				layers.back()->exp_y = (int)train_y_[train_x_index];
 				
-				std::cout << "layer exp y: " << layers.back()->exp_y << std::endl;
+				/*期待结果*/
+				//std::cout << "layer exp y: " << layers.back()->exp_y << std::endl;
 				/*
 				Start forward feeding.
 				*/
@@ -112,7 +114,11 @@ namespace mlp{
 					}
 				}
 
-				disp_vec_t(layers.back()->input_);
+				/*MNIST 每一轮拟合后的结果*/
+				//std::cout << (int)max_iter(layers.back()->input_) << std::endl;
+				
+				/*输出XOR每一轮拟合后的结果*/
+				//disp_vec_t(layers.back()->input_);
 
 				err += layers.back()->err;
 				/*
@@ -141,4 +147,6 @@ namespace mlp{
 	};
 #undef MAX_ITER
 #undef M
-} //namespace mlp-mnist
+} //namespace mlp
+
+#endif
